@@ -145,7 +145,6 @@ func _connect_pending(p: PendingPeer) -> bool:
 			var id := randi_range(2, 1 << 30)
 			peers[id] = p.ws
 			client_connected.emit(id)
-			_broadcast_state(id)
 			return true  # Success.
 		elif state != WebSocketPeer.STATE_CONNECTING:
 			return true  # Failure.
@@ -220,14 +219,13 @@ func _on_message(peer_id: int, message: String):
 				#print("Received ping from peer %d" % peer_id)
 				send(peer_id, JSON.stringify({"event":"pong"}))
 			"list_states":
-				#print("Received ping from peer %d" % peer_id)
 				var response := {
 					"event": "states_list",
 					"states_count": Global.settings_dict.get("states").size(),
 					"states": Global.settings_dict.get("states")
 				}
-				print(JSON.stringify(response))
 				send(peer_id, JSON.stringify(response))
+				_broadcast_state(peer_id)
 			"state":
 				#print("Change state received from peer %d " % peer_id)
 				#print(json_data["state_id"])
