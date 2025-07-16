@@ -79,10 +79,11 @@ func add_state():
 	InputMap.add_action(button.input_key)
 	
 	Global.settings_dict.states.append({
-	mouth_closed = 0,
-	mouth_open = 3,
-	current_mc_anim = "Idle",
-	current_mo_anim = "One Bounce",
+		state_name = str(state_count + 1) ,
+		mouth_closed = 0,
+		mouth_open = 3,
+		current_mc_anim = "Idle",
+		current_mo_anim = "One Bounce",
 	})
 	
 	Global.settings_dict.light_states.append({})
@@ -142,3 +143,4 @@ func _on_state_name_text_submitted(new_text: String) -> void:
 	if StateButton.selected_state != null && is_instance_valid(StateButton.selected_state):
 		StateButton.selected_state.state_name = new_text
 		StateButton.selected_state.text = new_text
+		Global.settings_dict.states[Global.current_state].state_name = new_text
