@@ -145,6 +145,7 @@ func _connect_pending(p: PendingPeer) -> bool:
 			var id := randi_range(2, 1 << 30)
 			peers[id] = p.ws
 			client_connected.emit(id)
+			_broadcast_state(id)
 			return true  # Success.
 		elif state != WebSocketPeer.STATE_CONNECTING:
 			return true  # Failure.
