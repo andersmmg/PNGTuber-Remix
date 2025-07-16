@@ -145,6 +145,7 @@ func _connect_pending(p: PendingPeer) -> bool:
 			var id := randi_range(2, 1 << 30)
 			peers[id] = p.ws
 			client_connected.emit(id)
+			_broadcast_state(id)
 			return true  # Success.
 		elif state != WebSocketPeer.STATE_CONNECTING:
 			return true  # Failure.
@@ -177,13 +178,24 @@ func _connect_pending(p: PendingPeer) -> bool:
 
 func _process(_delta: float) -> void:
 	poll()
-	
+
+
 func _ready() -> void:
 	message_received.connect(_on_message)
-#	start_websocket_server(9321)
+	
+	Global.reinfoanim.connect(_broadcast_state)
+
+
+func _broadcast_state(peer_id: int = 0) -> void:
+	send(peer_id, JSON.stringify({
+		"event": "new_state",
+		"state_id": Global.current_state + 1
+	}))
+
+
 #Call this function to start the websocket server, either here or any other place, as long as you have the reference to this node
 func start_websocket_server():
-	var result = listen(port) #Made port static just so the port setting feature can be integrated better.
+	var result = listen(port)
 	if result == OK:
 		is_working = true
 		port_state.emit(true)
@@ -191,6 +203,8 @@ func start_websocket_server():
 	else:
 		port_state.emit(false)
 		print("Failed to start server")
+
+
 func _on_message(peer_id: int, message: String):
 	print("Received message from peer %d: %s" % [peer_id, message])
 	var json_data:Dictionary = {}
@@ -204,21 +218,29 @@ func _on_message(peer_id: int, message: String):
 		match json_data["event"]:
 			"ping":
 				#print("Received ping from peer %d" % peer_id)
-				send(peer_id,'{"event":"pong"}')
+				send(peer_id, JSON.stringify({"event":"pong"}))
+			"list_states":
+				#print("Received ping from peer %d" % peer_id)
+				var response := {
+					"event": "states_list",
+					"states_count": Global.settings_dict.get("states").size(),
+					"states": Global.settings_dict.get("states")
+				}
+				print(JSON.stringify(response))
+				send(peer_id, JSON.stringify(response))
 			"state":
 				#print("Change state received from peer %d " % peer_id)
 				#print(json_data["state_id"])
 				
 				var state_id = int(json_data["state_id"])-1
-				if state_id in Global.settings_dict.get("states"):
+				if Global.settings_dict.get("states").size() >= state_id:
 					Global.current_state = state_id
 					Global.load_sprite_states(Global.current_state)
-					send(peer_id,'{"event":"state", result:"success"}')
+					#send(peer_id, JSON.stringify({"event":"state", "result": "success"}))
 				else:
-					send(peer_id,'{"event":"state", result:"failed"}')
+					send(peer_id, JSON.stringify({"event":"state", "result": "failed"}))
 			"general":
 				var key = str(json_data["key"])
 				Global.key_pressed.emit(key)
-				send(peer_id,'{"event":"state", result:"success"}')
-
+				send(peer_id, JSON.stringify({"event":"state", "result": "success"}))
 				#print(Global.current_state)
